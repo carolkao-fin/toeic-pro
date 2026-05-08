@@ -910,7 +910,10 @@ def page_vocab():
     st.markdown("## 📚 單字卡練習")
     c1, c2 = st.columns(2)
     with c1:
-        cats = ["全部"] + sorted(set(w["cat"] for w in get_combined_vocab()))
+        _all_cats = sorted(set(w["cat"] for w in get_combined_vocab()))
+        if "自訂" not in _all_cats:
+            _all_cats.append("自訂")
+        cats = ["全部"] + _all_cats
         S.v_cat = st.selectbox("分類篩選", cats, index=cats.index(S.v_cat))
     with c2:
         ranges = ["全部", "600-780", "780-900", "900+"]
@@ -1217,8 +1220,11 @@ def page_wordlist():
     c1, c2, c3 = st.columns([3, 2, 2])
     with c1: query = st.text_input("🔍 搜尋單字或中文", value=S.wl_query, placeholder="allocate / 分配...")
     _all_vocab = get_combined_vocab()
-    with c2: cat = st.selectbox("分類", ["全部"] + sorted(set(w["cat"] for w in _all_vocab)))
-    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+", "自訂"], key="wordlist_range")
+    _wl_cats = sorted(set(w["cat"] for w in _all_vocab))
+    if "自訂" not in _wl_cats:
+        _wl_cats.append("自訂")
+    with c2: cat = st.selectbox("分類", ["全部"] + _wl_cats)
+    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+"], key="wordlist_range")
     S.wl_query = query; S.wl_cat = cat
     filtered = _all_vocab
     if query:
