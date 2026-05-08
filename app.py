@@ -845,7 +845,7 @@ def page_vocab():
         S.v_cat = st.selectbox("分類篩選", cats, index=cats.index(S.v_cat))
     with c2:
         ranges = ["全部", "600-780", "780-900", "900+"]
-        S.v_range = st.selectbox("分數區間", ranges, index=ranges.index(S.v_range))
+        S.v_range = st.selectbox("分數區間", ranges, index=ranges.index(S.v_range), key="vocab_range")
     words = vocab_filtered()
     if S.v_idx >= len(words): S.v_idx = 0
     total_w = len(words)
@@ -1138,7 +1138,7 @@ def page_wordlist():
     c1, c2, c3 = st.columns([3, 2, 2])
     with c1: query = st.text_input("🔍 搜尋單字或中文", value=S.wl_query, placeholder="allocate / 分配...")
     with c2: cat = st.selectbox("分類", ["全部"] + sorted(set(w["cat"] for w in VOCAB)))
-    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+"])
+    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+"], key="wordlist_range")
     S.wl_query = query; S.wl_cat = cat
     filtered = VOCAB
     if query:
