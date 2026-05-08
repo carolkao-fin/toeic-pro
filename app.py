@@ -290,15 +290,19 @@ def save_notes(notes: list):
     NOTES_FILE.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
 
 def word_in_notes(word: str, notes: list) -> bool:
-    return any(n["word"].lower() == word.lower() for n in notes)
+    return any(n.get("title", "").lower() == word.lower() for n in notes)
 
 def add_to_notes(w: dict) -> bool:
     notes = load_notes()
     if not word_in_notes(w["word"], notes):
+        note_id = str(int(time.time())) + "_" + w["word"]
+        content = f"{w['pos']} {w['zh']}\n\n例句：{w['ex']}\n\n筆記："
         notes.append({
-            "word": w["word"], "pos": w["pos"], "zh": w["zh"],
-            "ex": w["ex"], "cat": w.get("cat", ""), "range": w.get("range", ""),
-            "user_note": "", "date_added": date.today().isoformat(),
+            "id": note_id,
+            "title": w["word"],
+            "content": content,
+            "date_created": date.today().isoformat(),
+            "date_modified": date.today().isoformat(),
         })
         save_notes(notes)
         return True
@@ -353,7 +357,7 @@ def init_state():
         "mock_end_time": 0.0, "mock_finished": False,
         "rev_idx": 0, "rev_done": {},
         "wl_query": "", "wl_cat": "全部",
-        "nb_search": "",
+        "nb_editing": None,
         # 遊戲狀態
         "game_active": None,      # 'match' | 'quiz' | 'speed' | None
         "game_end_time": 0.0,
@@ -1294,96 +1298,101 @@ def page_ai():
 # 頁面：我的單字筆記
 # ─────────────────────────────────────────────────────────────────────────────
 def page_notebook():
-    st.markdown("## 📒 我的單字筆記")
+    st.markdown("## 📒 筆記本")
     notes = load_notes()
 
-    # 搜尋並加入單字
-    with st.expander("➕ 搜尋並加入單字", expanded=not bool(notes)):
-        add_q = st.text_input("輸入英文單字搜尋", placeholder="e.g. allocate", key="nb_add_q")
-        if add_q:
-            matches = [w for w in VOCAB if add_q.lower() in w["word"].lower()][:8]
-            if matches:
-                for w in matches:
-                    ca, cb = st.columns([5, 1])
-                    with ca:
-                        st.markdown(f"**{w['word']}** `{w['pos']}` — {w['zh']}")
-                    with cb:
-                        if word_in_notes(w["word"], notes):
-                            st.markdown('<small style="color:#10b981">✅ 已記錄</small>', unsafe_allow_html=True)
-                        else:
-                            if st.button("📌", key=f"nbadd_{w['word']}", use_container_width=True):
-                                add_to_notes(w)
-                                st.rerun()
+    # ── 新增筆記區 ────────────────────────────────────────────────────────────
+    with st.expander("✏️ 新增筆記", expanded=(not bool(notes))):
+        new_title = st.text_input("標題", placeholder="單字、主題、任何名稱...", key="nb_new_title")
+        new_content = st.text_area(
+            "內容",
+            placeholder="自由輸入筆記內容...",
+            height=160,
+            key="nb_new_content",
+        )
+        if st.button("💾 儲存新筆記", type="primary", key="nb_save_new"):
+            if new_title.strip():
+                note_id = str(int(time.time()))
+                notes.append({
+                    "id": note_id,
+                    "title": new_title.strip(),
+                    "content": new_content.strip(),
+                    "date_created": date.today().isoformat(),
+                    "date_modified": date.today().isoformat(),
+                })
+                save_notes(notes)
+                st.success("✅ 筆記已儲存！")
+                st.rerun()
             else:
-                st.warning("找不到符合的單字。")
+                st.warning("請輸入標題。")
 
     st.markdown("---")
 
     if not notes:
-        st.info("📒 筆記本是空的！\n\n在「📚 單字卡」頁面點選 **📌 加入筆記**，或在上方搜尋框手動加入不熟的單字。")
+        st.info("📒 筆記本是空的！點選上方「✏️ 新增筆記」開始記錄，或在「📚 單字卡」頁面點擊「📌 加入筆記」自動建立單字筆記。")
         return
 
-    # 篩選搜尋
-    search = st.text_input("🔍 搜尋筆記", placeholder="單字或中文...", key="nb_search_box")
-    filtered = notes
-    if search:
-        sq = search.lower()
-        filtered = [n for n in notes if sq in n["word"].lower() or sq in n["zh"]]
-
-    col_stat, col_clear = st.columns([4, 1])
-    with col_stat:
-        st.markdown(f"<small style='color:#64748b'>共 <b>{len(filtered)}</b> 筆（總計 {len(notes)} 筆）</small>", unsafe_allow_html=True)
-    with col_clear:
-        if st.button("🗑️ 清空全部", type="secondary", use_container_width=True):
+    # ── 搜尋 + 統計 ───────────────────────────────────────────────────────────
+    col_s, col_c = st.columns([5, 1])
+    with col_s:
+        search = st.text_input("🔍 搜尋筆記", placeholder="搜尋標題或內容...", key="nb_search_box", label_visibility="collapsed")
+    with col_c:
+        if st.button("🗑️ 清空全部", use_container_width=True):
             save_notes([])
             st.rerun()
 
+    filtered = notes
+    if search:
+        sq = search.lower()
+        filtered = [n for n in notes if sq in n.get("title","").lower() or sq in n.get("content","").lower()]
+
+    st.markdown(f"<small style='color:#64748b'>共 <b>{len(filtered)}</b> 筆（總計 {len(notes)} 筆）</small>", unsafe_allow_html=True)
     st.markdown("")
 
+    # ── 筆記列表 ──────────────────────────────────────────────────────────────
     for i, note in enumerate(filtered):
-        real_idx = next((j for j, n in enumerate(notes) if n["word"] == note["word"]), None)
+        real_idx = next((j for j, n in enumerate(notes) if n.get("id") == note.get("id")), None)
         if real_idx is None:
             continue
+        is_editing = (S.nb_editing == note.get("id"))
 
-        col_info, col_actions = st.columns([5, 1])
-        with col_info:
-            user_note_html = (
-                f'<div class="nb-user-note">📝 {note["user_note"]}</div>'
-                if note.get("user_note") else ""
-            )
+        col_hd, col_btns = st.columns([6, 1])
+        with col_hd:
             st.markdown(
-                f'<div class="nb-card">'
-                f'<span class="nb-word">{note["word"]}</span>'
-                f'{tag_html(note["pos"])}'
-                f'<span class="nb-badge">{note["cat"]}</span>'
-                f'<span class="nb-badge">{note["range"]}</span>'
-                f'<div style="font-size:1.05rem;font-weight:700;color:#1e293b;margin:.4rem 0 .2rem">{note["zh"]}</div>'
-                f'<div style="font-size:.82rem;color:#64748b;font-style:italic">"{note["ex"]}"</div>'
-                f'<div style="font-size:.68rem;color:#94a3b8;margin-top:.35rem">加入日期：{note["date_added"]}</div>'
-                f'{user_note_html}'
-                f'</div>',
+                f'<div style="font-size:1.1rem;font-weight:800;color:#2563eb;margin-bottom:2px">{note.get("title","")}</div>'
+                f'<div style="font-size:.7rem;color:#94a3b8">建立：{note.get("date_created","")}　修改：{note.get("date_modified","")}</div>',
                 unsafe_allow_html=True,
             )
-        with col_actions:
-            if st.button("🔊", key=f"nb_sp_{i}", use_container_width=True):
-                speak_js(note["word"] + ". " + note["ex"])
-            if st.button("🗑️", key=f"nb_del_{i}", use_container_width=True, help="刪除此筆記"):
+        with col_btns:
+            edit_label = "✕" if is_editing else "✏️"
+            if st.button(edit_label, key=f"nb_edit_{i}", use_container_width=True, help="編輯" if not is_editing else "取消"):
+                S.nb_editing = None if is_editing else note.get("id")
+                st.rerun()
+            if st.button("🗑️", key=f"nb_del_{i}", use_container_width=True, help="刪除"):
                 notes.pop(real_idx)
+                if S.nb_editing == note.get("id"):
+                    S.nb_editing = None
                 save_notes(notes)
                 st.rerun()
 
-        new_note_text = st.text_area(
-            f"筆記（{note['word']}）",
-            value=note.get("user_note", ""),
-            placeholder="寫下記憶訣竅、造句、或任何備注...",
-            height=80,
-            key=f"nb_ta_{i}_{note['word']}",
-            label_visibility="collapsed",
-        )
-        if st.button("💾 儲存筆記", key=f"nb_sv_{i}"):
-            notes[real_idx]["user_note"] = new_note_text
-            save_notes(notes)
-            st.success("✅ 已儲存！")
+        if is_editing:
+            edit_title = st.text_input("標題", value=note.get("title",""), key=f"nb_et_{i}")
+            edit_content = st.text_area("內容", value=note.get("content",""), height=160, key=f"nb_ec_{i}")
+            if st.button("💾 儲存", key=f"nb_esv_{i}", type="primary"):
+                notes[real_idx]["title"] = edit_title.strip()
+                notes[real_idx]["content"] = edit_content.strip()
+                notes[real_idx]["date_modified"] = date.today().isoformat()
+                save_notes(notes)
+                S.nb_editing = None
+                st.rerun()
+        else:
+            content = note.get("content", "")
+            st.markdown(
+                f'<div style="background:#f8fafc;border-radius:8px;padding:.75rem 1rem;margin:.4rem 0 .8rem;'
+                f'font-size:.88rem;color:#374151;white-space:pre-wrap;border-left:3px solid #e2e8f0">'
+                f'{content}</div>',
+                unsafe_allow_html=True,
+            )
         st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────────────────────
