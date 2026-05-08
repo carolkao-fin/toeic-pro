@@ -95,6 +95,14 @@ st.markdown("""
   padding:.7rem;text-align:center;color:#5b21b6;font-weight:700;font-size:.85rem}
 .xp-pill{display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);
   color:white;border-radius:99px;padding:.3rem 1rem;font-weight:700;font-size:.85rem}
+/* 筆記本 */
+.nb-card{background:white;border-radius:14px;padding:1.2rem 1.5rem;margin-bottom:.5rem;
+  border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.nb-word{font-size:1.4rem;font-weight:800;color:#2563eb}
+.nb-badge{background:#fef3c7;color:#92400e;border-radius:6px;padding:.1rem .45rem;
+  font-size:.7rem;font-weight:700;margin-left:.35rem}
+.nb-user-note{background:#fffbeb;border-left:3px solid #f59e0b;padding:.5rem .8rem;
+  border-radius:0 6px 6px 0;font-size:.85rem;color:#92400e;margin-top:.6rem;white-space:pre-wrap}
 </style>
 """, unsafe_allow_html=True)
 
@@ -265,6 +273,37 @@ def load_checkin():
 def save_checkin(data):
     CHECKIN_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 筆記本資料持久化
+# ─────────────────────────────────────────────────────────────────────────────
+NOTES_FILE = Path(__file__).parent / "notes_data.json"
+
+def load_notes() -> list:
+    if NOTES_FILE.exists():
+        try:
+            return json.loads(NOTES_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return []
+
+def save_notes(notes: list):
+    NOTES_FILE.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def word_in_notes(word: str, notes: list) -> bool:
+    return any(n["word"].lower() == word.lower() for n in notes)
+
+def add_to_notes(w: dict) -> bool:
+    notes = load_notes()
+    if not word_in_notes(w["word"], notes):
+        notes.append({
+            "word": w["word"], "pos": w["pos"], "zh": w["zh"],
+            "ex": w["ex"], "cat": w.get("cat", ""), "range": w.get("range", ""),
+            "user_note": "", "date_added": date.today().isoformat(),
+        })
+        save_notes(notes)
+        return True
+    return False
+
 def calc_streak(checkins: list) -> int:
     if not checkins:
         return 0
@@ -314,6 +353,7 @@ def init_state():
         "mock_end_time": 0.0, "mock_finished": False,
         "rev_idx": 0, "rev_done": {},
         "wl_query": "", "wl_cat": "全部",
+        "nb_search": "",
         # 遊戲狀態
         "game_active": None,      # 'match' | 'quiz' | 'speed' | None
         "game_end_time": 0.0,
@@ -856,7 +896,7 @@ def page_vocab():
         st.markdown(f'<div class="flashcard"><div class="fc-word">{w["word"]}</div><div class="fc-pos">{w["pos"]} ‧ {w["cat"]}</div><div style="margin-top:1rem;font-size:.85rem;opacity:.7">點擊「翻牌」查看意思</div></div>', unsafe_allow_html=True)
     else:
         st.markdown(f'<div class="flashcard" style="background:linear-gradient(135deg,#059669,#047857)"><div class="fc-zh">{w["zh"]}</div><div class="fc-ex">"{w["ex"]}"</div></div>', unsafe_allow_html=True)
-    c1,c2,c3,c4 = st.columns(4)
+    c1,c2,c3,c4,c5 = st.columns(5)
     with c1:
         if st.button("🔊 發音", use_container_width=True): speak_js(w["word"]+". "+w["ex"])
     with c2:
@@ -868,6 +908,16 @@ def page_vocab():
     with c4:
         if st.button("➡️ 下一張", use_container_width=True):
             S.v_idx=(S.v_idx+1)%len(words); S.v_flipped=False; st.rerun()
+    with c5:
+        _nb = load_notes()
+        _in_nb = word_in_notes(w["word"], _nb)
+        if _in_nb:
+            st.button("📌 已記錄", use_container_width=True, disabled=True)
+        else:
+            if st.button("📌 加入筆記", use_container_width=True):
+                add_to_notes(w)
+                st.toast(f"「{w['word']}」已加入筆記！")
+                st.rerun()
     with st.expander("🔀 隨機跳至"):
         if st.button("隨機一張"):
             S.v_idx=random.randint(0,len(words)-1); S.v_flipped=False; st.rerun()
@@ -1241,9 +1291,105 @@ def page_ai():
         st.markdown("")
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 頁面：我的單字筆記
+# ─────────────────────────────────────────────────────────────────────────────
+def page_notebook():
+    st.markdown("## 📒 我的單字筆記")
+    notes = load_notes()
+
+    # 搜尋並加入單字
+    with st.expander("➕ 搜尋並加入單字", expanded=not bool(notes)):
+        add_q = st.text_input("輸入英文單字搜尋", placeholder="e.g. allocate", key="nb_add_q")
+        if add_q:
+            matches = [w for w in VOCAB if add_q.lower() in w["word"].lower()][:8]
+            if matches:
+                for w in matches:
+                    ca, cb = st.columns([5, 1])
+                    with ca:
+                        st.markdown(f"**{w['word']}** `{w['pos']}` — {w['zh']}")
+                    with cb:
+                        if word_in_notes(w["word"], notes):
+                            st.markdown('<small style="color:#10b981">✅ 已記錄</small>', unsafe_allow_html=True)
+                        else:
+                            if st.button("📌", key=f"nbadd_{w['word']}", use_container_width=True):
+                                add_to_notes(w)
+                                st.rerun()
+            else:
+                st.warning("找不到符合的單字。")
+
+    st.markdown("---")
+
+    if not notes:
+        st.info("📒 筆記本是空的！\n\n在「📚 單字卡」頁面點選 **📌 加入筆記**，或在上方搜尋框手動加入不熟的單字。")
+        return
+
+    # 篩選搜尋
+    search = st.text_input("🔍 搜尋筆記", placeholder="單字或中文...", key="nb_search_box")
+    filtered = notes
+    if search:
+        sq = search.lower()
+        filtered = [n for n in notes if sq in n["word"].lower() or sq in n["zh"]]
+
+    col_stat, col_clear = st.columns([4, 1])
+    with col_stat:
+        st.markdown(f"<small style='color:#64748b'>共 <b>{len(filtered)}</b> 筆（總計 {len(notes)} 筆）</small>", unsafe_allow_html=True)
+    with col_clear:
+        if st.button("🗑️ 清空全部", type="secondary", use_container_width=True):
+            save_notes([])
+            st.rerun()
+
+    st.markdown("")
+
+    for i, note in enumerate(filtered):
+        real_idx = next((j for j, n in enumerate(notes) if n["word"] == note["word"]), None)
+        if real_idx is None:
+            continue
+
+        col_info, col_actions = st.columns([5, 1])
+        with col_info:
+            user_note_html = (
+                f'<div class="nb-user-note">📝 {note["user_note"]}</div>'
+                if note.get("user_note") else ""
+            )
+            st.markdown(
+                f'<div class="nb-card">'
+                f'<span class="nb-word">{note["word"]}</span>'
+                f'{tag_html(note["pos"])}'
+                f'<span class="nb-badge">{note["cat"]}</span>'
+                f'<span class="nb-badge">{note["range"]}</span>'
+                f'<div style="font-size:1.05rem;font-weight:700;color:#1e293b;margin:.4rem 0 .2rem">{note["zh"]}</div>'
+                f'<div style="font-size:.82rem;color:#64748b;font-style:italic">"{note["ex"]}"</div>'
+                f'<div style="font-size:.68rem;color:#94a3b8;margin-top:.35rem">加入日期：{note["date_added"]}</div>'
+                f'{user_note_html}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with col_actions:
+            if st.button("🔊", key=f"nb_sp_{i}", use_container_width=True):
+                speak_js(note["word"] + ". " + note["ex"])
+            if st.button("🗑️", key=f"nb_del_{i}", use_container_width=True, help="刪除此筆記"):
+                notes.pop(real_idx)
+                save_notes(notes)
+                st.rerun()
+
+        new_note_text = st.text_area(
+            f"筆記（{note['word']}）",
+            value=note.get("user_note", ""),
+            placeholder="寫下記憶訣竅、造句、或任何備注...",
+            height=80,
+            key=f"nb_ta_{i}_{note['word']}",
+            label_visibility="collapsed",
+        )
+        if st.button("💾 儲存筆記", key=f"nb_sv_{i}"):
+            notes[real_idx]["user_note"] = new_note_text
+            save_notes(notes)
+            st.success("✅ 已儲存！")
+        st.markdown("---")
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 主程式
 # ─────────────────────────────────────────────────────────────────────────────
-TABS = ["🏠 首頁","📅 打卡","🎮 遊戲","📚 單字卡","📝 文法","🎧 聽力","📖 閱讀","⏱ 模擬考","🔴 錯題","📋 單字庫","🤖 AI 出題"]
+TABS = ["🏠 首頁","📅 打卡","🎮 遊戲","📚 單字卡","📝 文法","🎧 聽力","📖 閱讀","⏱ 模擬考","🔴 錯題","📋 單字庫","🤖 AI 出題","📒 筆記本"]
 tabs = st.tabs(TABS)
 
 with tabs[0]:  page_home()
@@ -1257,3 +1403,4 @@ with tabs[7]:  page_mock()
 with tabs[8]:  page_review()
 with tabs[9]:  page_wordlist()
 with tabs[10]: page_ai()
+with tabs[11]: page_notebook()
