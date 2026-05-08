@@ -100,115 +100,45 @@ st.markdown("""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 資料層
+# 詞彙來源：kknono668/toeic-vocab-tw (Hugging Face, CC-BY-SA-4.0)
+# https://huggingface.co/datasets/kknono668/toeic-vocab-tw
 # ─────────────────────────────────────────────────────────────────────────────
-VOCAB = [
-    # 商務辦公
-    {"word":"accomplish","pos":"v.","cat":"商務辦公","zh":"完成、實現","ex":"She managed to accomplish the task ahead of schedule."},
-    {"word":"acquire","pos":"v.","cat":"商務辦公","zh":"取得、獲得","ex":"The company plans to acquire new assets this year."},
-    {"word":"allocate","pos":"v.","cat":"商務辦公","zh":"分配、撥出","ex":"The manager will allocate resources to each team."},
-    {"word":"anticipate","pos":"v.","cat":"商務辦公","zh":"預期、預料","ex":"We anticipate strong sales growth in Q4."},
-    {"word":"assemble","pos":"v.","cat":"商務辦公","zh":"集合、組裝","ex":"All staff are asked to assemble in the conference room."},
-    {"word":"authorize","pos":"v.","cat":"商務辦公","zh":"授權、批准","ex":"Only the CEO can authorize this expenditure."},
-    {"word":"collaborate","pos":"v.","cat":"商務辦公","zh":"合作","ex":"Both departments need to collaborate on this project."},
-    {"word":"compensate","pos":"v.","cat":"商務辦公","zh":"補償","ex":"The firm will compensate employees for overtime."},
-    {"word":"comprehensive","pos":"adj.","cat":"商務辦公","zh":"全面的、完整的","ex":"Please submit a comprehensive report by Friday."},
-    {"word":"consistently","pos":"adv.","cat":"商務辦公","zh":"一致地、持續地","ex":"She consistently delivers high-quality work."},
-    {"word":"deadline","pos":"n.","cat":"商務辦公","zh":"截止日期","ex":"We must meet the deadline by noon tomorrow."},
-    {"word":"delegate","pos":"v.","cat":"商務辦公","zh":"委派、授權","ex":"A good manager knows when to delegate tasks."},
-    {"word":"demonstrate","pos":"v.","cat":"商務辦公","zh":"展示、證明","ex":"Please demonstrate how the software works."},
-    {"word":"efficient","pos":"adj.","cat":"商務辦公","zh":"有效率的","ex":"An efficient process saves both time and money."},
-    {"word":"eliminate","pos":"v.","cat":"商務辦公","zh":"消除、排除","ex":"We need to eliminate unnecessary steps in the workflow."},
-    {"word":"evaluate","pos":"v.","cat":"商務辦公","zh":"評估、評價","ex":"The committee will evaluate the proposals next week."},
-    {"word":"facilitate","pos":"v.","cat":"商務辦公","zh":"促進、協助","ex":"Technology can facilitate remote collaboration."},
-    {"word":"implement","pos":"v.","cat":"商務辦公","zh":"實施、執行","ex":"The team will implement the new system next month."},
-    {"word":"mandatory","pos":"adj.","cat":"商務辦公","zh":"強制的、必須的","ex":"Attendance at the safety training is mandatory."},
-    {"word":"negotiate","pos":"v.","cat":"商務辦公","zh":"談判、協商","ex":"Both sides need to negotiate a fair contract."},
-    {"word":"prioritize","pos":"v.","cat":"商務辦公","zh":"優先處理","ex":"Please prioritize the client requests this week."},
-    {"word":"proposal","pos":"n.","cat":"商務辦公","zh":"提案、建議書","ex":"Please review the proposal before the meeting."},
-    {"word":"qualified","pos":"adj.","cat":"商務辦公","zh":"有資格的","ex":"Only qualified applicants will be interviewed."},
-    {"word":"reliable","pos":"adj.","cat":"商務辦公","zh":"可靠的","ex":"We need a reliable supplier for our materials."},
-    {"word":"schedule","pos":"v.","cat":"商務辦公","zh":"排定、安排","ex":"Please schedule the meeting for next Tuesday."},
-    # 財務會計
-    {"word":"accountable","pos":"adj.","cat":"財務會計","zh":"負責任的","ex":"Each manager is accountable for their department's budget."},
-    {"word":"annual","pos":"adj.","cat":"財務會計","zh":"年度的","ex":"The annual report will be released next month."},
-    {"word":"asset","pos":"n.","cat":"財務會計","zh":"資產","ex":"The building is the company's most valuable asset."},
-    {"word":"audit","pos":"n.","cat":"財務會計","zh":"審計、查帳","ex":"The external audit revealed no discrepancies."},
-    {"word":"budget","pos":"n.","cat":"財務會計","zh":"預算","ex":"The project is within budget so far."},
-    {"word":"comply","pos":"v.","cat":"財務會計","zh":"遵守、符合","ex":"All companies must comply with the new tax regulations."},
-    {"word":"deficit","pos":"n.","cat":"財務會計","zh":"赤字、虧損","ex":"The company reported a deficit for the third quarter."},
-    {"word":"depreciate","pos":"v.","cat":"財務會計","zh":"折舊、貶值","ex":"Office equipment depreciates over time."},
-    {"word":"dividend","pos":"n.","cat":"財務會計","zh":"股息","ex":"Shareholders will receive a dividend of $2 per share."},
-    {"word":"expenditure","pos":"n.","cat":"財務會計","zh":"支出、費用","ex":"Total expenditure exceeded the allocated budget."},
-    {"word":"fiscal","pos":"adj.","cat":"財務會計","zh":"財政的、會計的","ex":"The fiscal year ends on December 31st."},
-    {"word":"invoice","pos":"n.","cat":"財務會計","zh":"發票、請款單","ex":"Please send the invoice to the accounting department."},
-    {"word":"liability","pos":"n.","cat":"財務會計","zh":"負債、責任","ex":"Long-term liabilities are listed on the balance sheet."},
-    {"word":"overhead","pos":"n.","cat":"財務會計","zh":"管銷費用","ex":"We need to reduce overhead costs this quarter."},
-    {"word":"quarterly","pos":"adj.","cat":"財務會計","zh":"每季的","ex":"The quarterly earnings report exceeded expectations."},
-    {"word":"revenue","pos":"n.","cat":"財務會計","zh":"收益、營收","ex":"The company reported record revenue this quarter."},
-    {"word":"transaction","pos":"n.","cat":"財務會計","zh":"交易","ex":"All transactions must be recorded in the system."},
-    {"word":"profitable","pos":"adj.","cat":"財務會計","zh":"有利可圖的","ex":"The new branch proved to be very profitable."},
-    {"word":"payable","pos":"adj.","cat":"財務會計","zh":"應付的","ex":"Accounts payable must be settled by month-end."},
-    {"word":"receivable","pos":"adj.","cat":"財務會計","zh":"應收的","ex":"Accounts receivable increased by 15% this quarter."},
-    # 行銷業務
-    {"word":"advertise","pos":"v.","cat":"行銷業務","zh":"廣告、宣傳","ex":"The company decided to advertise on social media."},
-    {"word":"brand","pos":"n.","cat":"行銷業務","zh":"品牌","ex":"Building a strong brand takes time and consistency."},
-    {"word":"campaign","pos":"n.","cat":"行銷業務","zh":"行銷活動","ex":"The marketing campaign generated impressive results."},
-    {"word":"clientele","pos":"n.","cat":"行銷業務","zh":"顧客群","ex":"The store's clientele consists mostly of young professionals."},
-    {"word":"distribute","pos":"v.","cat":"行銷業務","zh":"分發、分銷","ex":"We distribute products to over 50 countries."},
-    {"word":"endorse","pos":"v.","cat":"行銷業務","zh":"代言、背書","ex":"The athlete was paid to endorse the new sports drink."},
-    {"word":"launch","pos":"v.","cat":"行銷業務","zh":"推出、發布","ex":"The company will launch a new product line in spring."},
-    {"word":"merchandise","pos":"n.","cat":"行銷業務","zh":"商品","ex":"The store sells a wide variety of merchandise."},
-    {"word":"promote","pos":"v.","cat":"行銷業務","zh":"促銷、推廣","ex":"The sale is being promoted through email newsletters."},
-    {"word":"retail","pos":"n.","cat":"行銷業務","zh":"零售","ex":"Retail sales increased significantly during the holidays."},
-    {"word":"survey","pos":"n.","cat":"行銷業務","zh":"調查","ex":"Please complete the customer satisfaction survey."},
-    {"word":"target","pos":"n.","cat":"行銷業務","zh":"目標（群眾）","ex":"The target market for this product is ages 25-40."},
-    {"word":"wholesale","pos":"n.","cat":"行銷業務","zh":"批發","ex":"The wholesale price is 30% lower than retail."},
-    {"word":"yield","pos":"v.","cat":"行銷業務","zh":"產生（回報）","ex":"The investment yielded a 12% annual return."},
-    {"word":"competitive","pos":"adj.","cat":"行銷業務","zh":"有競爭力的","ex":"Our pricing is highly competitive in the market."},
-    # 人力資源
-    {"word":"applicant","pos":"n.","cat":"人力資源","zh":"申請者、應徵者","ex":"Over 200 applicants responded to the job posting."},
-    {"word":"benefit","pos":"n.","cat":"人力資源","zh":"福利","ex":"The company offers excellent employee benefits."},
-    {"word":"candidate","pos":"n.","cat":"人力資源","zh":"候選人","ex":"She is the top candidate for the position."},
-    {"word":"eligible","pos":"adj.","cat":"人力資源","zh":"符合資格的","ex":"Employees with 5+ years are eligible for the program."},
-    {"word":"hire","pos":"v.","cat":"人力資源","zh":"雇用","ex":"We plan to hire ten new staff members this quarter."},
-    {"word":"incentive","pos":"n.","cat":"人力資源","zh":"激勵、獎勵","ex":"The bonus serves as an incentive for performance."},
-    {"word":"recruit","pos":"v.","cat":"人力資源","zh":"招募","ex":"HR is actively recruiting for the engineering team."},
-    {"word":"relocate","pos":"v.","cat":"人力資源","zh":"重新安置、遷移","ex":"The employee agreed to relocate to the new branch."},
-    {"word":"resign","pos":"v.","cat":"人力資源","zh":"辭職","ex":"She decided to resign from her position last Friday."},
-    {"word":"retire","pos":"v.","cat":"人力資源","zh":"退休","ex":"He plans to retire at the age of 60."},
-    {"word":"supervisory","pos":"adj.","cat":"人力資源","zh":"監督的","ex":"This role requires supervisory experience."},
-    {"word":"terminate","pos":"v.","cat":"人力資源","zh":"終止（合約）","ex":"The contract was terminated due to poor performance."},
-    {"word":"vacancy","pos":"n.","cat":"人力資源","zh":"職缺","ex":"There is a vacancy in the marketing department."},
-    {"word":"probationary","pos":"adj.","cat":"人力資源","zh":"試用期的","ex":"New employees serve a three-month probationary period."},
-    {"word":"commute","pos":"v.","cat":"人力資源","zh":"通勤","ex":"Many employees commute over an hour each way."},
-    # 旅遊交通
-    {"word":"adjacent","pos":"adj.","cat":"旅遊交通","zh":"相鄰的","ex":"The conference room is adjacent to the lobby."},
-    {"word":"arrival","pos":"n.","cat":"旅遊交通","zh":"抵達","ex":"Please check the arrival time on your boarding pass."},
-    {"word":"boarding","pos":"n.","cat":"旅遊交通","zh":"登機、登船","ex":"Boarding will begin 30 minutes before departure."},
-    {"word":"connection","pos":"n.","cat":"旅遊交通","zh":"轉機、轉乘","ex":"She missed her connection in Tokyo due to a delay."},
-    {"word":"customs","pos":"n.","cat":"旅遊交通","zh":"海關","ex":"All passengers must go through customs upon arrival."},
-    {"word":"departure","pos":"n.","cat":"旅遊交通","zh":"出發、離港","ex":"The departure gate has been changed to Gate 12."},
-    {"word":"itinerary","pos":"n.","cat":"旅遊交通","zh":"旅程表","ex":"Please send me your itinerary for the business trip."},
-    {"word":"layover","pos":"n.","cat":"旅遊交通","zh":"中途停留","ex":"There is a two-hour layover in Singapore."},
-    {"word":"reservation","pos":"n.","cat":"旅遊交通","zh":"預訂","ex":"I'd like to confirm my hotel reservation."},
-    {"word":"terminal","pos":"n.","cat":"旅遊交通","zh":"航廈、候機樓","ex":"International flights depart from Terminal 2."},
-    {"word":"transit","pos":"n.","cat":"旅遊交通","zh":"過境、轉運","ex":"Passengers in transit do not need to collect their baggage."},
-    {"word":"turbulence","pos":"n.","cat":"旅遊交通","zh":"亂流","ex":"The pilot advised passengers to fasten seatbelts due to turbulence."},
-    {"word":"venue","pos":"n.","cat":"旅遊交通","zh":"會場、場地","ex":"The event venue holds up to 500 guests."},
-    # 法律合規
-    {"word":"breach","pos":"n.","cat":"法律合規","zh":"違反、違約","ex":"Filing a lawsuit for breach of contract is common."},
-    {"word":"clause","pos":"n.","cat":"法律合規","zh":"條款","ex":"Please review the confidentiality clause carefully."},
-    {"word":"confidential","pos":"adj.","cat":"法律合規","zh":"機密的","ex":"This document is strictly confidential."},
-    {"word":"contract","pos":"n.","cat":"法律合規","zh":"合約","ex":"Both parties signed the contract yesterday."},
-    {"word":"dispute","pos":"n.","cat":"法律合規","zh":"爭議、糾紛","ex":"The dispute was resolved through mediation."},
-    {"word":"enforce","pos":"v.","cat":"法律合規","zh":"執行（法規）","ex":"The government will enforce the new regulations strictly."},
-    {"word":"guarantee","pos":"n.","cat":"法律合規","zh":"保證、擔保","ex":"The product comes with a one-year guarantee."},
-    {"word":"liable","pos":"adj.","cat":"法律合規","zh":"有法律責任的","ex":"The company may be liable for damages."},
-    {"word":"regulation","pos":"n.","cat":"法律合規","zh":"規定、法規","ex":"All employees must follow safety regulations."},
-    {"word":"trademark","pos":"n.","cat":"法律合規","zh":"商標","ex":"The logo is a registered trademark of the company."},
-    {"word":"warranty","pos":"n.","cat":"法律合規","zh":"保固","ex":"The warranty covers parts and labor for two years."},
-    {"word":"penalty","pos":"n.","cat":"法律合規","zh":"罰款、處罰","ex":"A penalty will be imposed for late submission."},
-]
+def _load_vocab() -> list:
+    vocab_file = Path(__file__).parent / "vocab_data.json"
+    if not vocab_file.exists():
+        return []
+    raw = json.loads(vocab_file.read_text(encoding="utf-8"))
+    pos_map = {
+        "verb": "v.", "noun": "n.", "adjective": "adj.", "adverb": "adv.",
+        "preposition": "prep.", "conjunction": "conj.", "determiner": "n.",
+        "pronoun": "n.", "interjection": "n.", "phrase": "n.",
+    }
+    result, seen = [], set()
+    for r in raw:
+        word = r.get("word", "").strip()
+        zh = r.get("zh", "").strip()
+        ex = r.get("ex", "").strip()
+        if not word or not zh or not ex:
+            continue
+        # 過濾短語（"a ...", "the ..." 開頭）與過長單字
+        if word[:2].lower() in ("a ", "an", "th") or len(word) > 25:
+            continue
+        if word.lower() in seen:
+            continue
+        seen.add(word.lower())
+        pos_raw = r.get("pos", "noun").split(",")[0].strip().lower()
+        pos = pos_map.get(pos_raw, "n.")
+        result.append({
+            "word": word,
+            "pos": pos,
+            "cat": r.get("cat", "商務辦公"),
+            "zh": zh,
+            "ex": ex,
+            "range": r.get("range", "600-780"),
+        })
+    return result
+
+VOCAB = _load_vocab()
 
 GRAMMAR_QS = [
     {"q":"The report will be submitted _____ Friday.","opts":["on","at","in","by"],"ans":3,"exp":'"By Friday" 表示截止時間，用 by'},
@@ -241,6 +171,31 @@ GRAMMAR_QS = [
     {"q":"Employees must _____ with the company's dress code.","opts":["comply","agreement","follow with","obey to"],"ans":0,"exp":'"Comply with" = 遵守（固定搭配）'},
     {"q":"The report was _____ prepared by the marketing team.","opts":["thoroughly","thorough","thoroughness","thorough in"],"ans":0,"exp":"修飾動詞用副詞 thoroughly"},
     {"q":"Please _____ your supervisor before making any changes.","opts":["consult","consult with","consulting","consulted"],"ans":0,"exp":'"Consult" 可直接接受詞'},
+    # --- ESL Lounge 風格 Part 5 補充題（詞形、被動、連接詞、搭配詞）---
+    {"q":"The factory implemented _____ safety measures after the inspection.","opts":["effective","effect","effectively","effectiveness"],"ans":0,"exp":"名詞前需形容詞 effective"},
+    {"q":"Flight attendants _____ check passengers' seat belts before takeoff.","opts":["routine","routinely","routines","routined"],"ans":1,"exp":"修飾動詞用副詞 routinely"},
+    {"q":"The _____ of the new branch office is planned for next quarter.","opts":["open","opening","opened","openly"],"ans":1,"exp":"the + 動名詞作名詞 opening"},
+    {"q":"The head chef _____ inspects each dish before it is served.","opts":["personal","personality","personally","personalize"],"ans":2,"exp":"修飾動詞 inspects 用副詞 personally"},
+    {"q":"All invoices must be _____ by the finance director.","opts":["approval","approve","approved","approving"],"ans":2,"exp":"被動語態：must be + p.p."},
+    {"q":"The new regulation requires _____ of all financial transactions.","opts":["disclose","disclosing","disclosure","disclosed"],"ans":2,"exp":"requires + 名詞：disclosure（揭露）"},
+    {"q":"The project was _____ due to a lack of funding.","opts":["suspend","suspended","suspending","suspension"],"ans":1,"exp":"was + p.p. 被動：was suspended 暫停"},
+    {"q":"The marketing team held a _____ to brainstorm new ideas.","opts":["session","sessions","sessional","sessionize"],"ans":0,"exp":"hold a session = 舉辦會議"},
+    {"q":"Applicants should _____ three professional references.","opts":["provide","providing","provided","provision"],"ans":0,"exp":"should + 原形動詞 provide"},
+    {"q":"The contract will be _____ once both parties sign the agreement.","opts":["finalize","finalizing","finalized","finalization"],"ans":2,"exp":"will be + p.p. 被動：finalized"},
+    {"q":"_____ the team worked overtime, the deadline was still missed.","opts":["Although","Due to","Therefore","However"],"ans":0,"exp":"Although 引導讓步副詞子句，後接完整句"},
+    {"q":"The new software has greatly _____ our data processing speed.","opts":["improve","improved","improvement","improving"],"ans":1,"exp":"has + p.p. 現在完成式：improved"},
+    {"q":"The manager asked for _____ feedback from all department heads.","opts":["write","written","writing","writes"],"ans":1,"exp":"written feedback 書面回饋（形容詞）"},
+    {"q":"_____ the merger is completed, staff will be notified of any changes.","opts":["Once","Despite","Unless","Whereas"],"ans":0,"exp":"Once = 一旦…就，表時間條件"},
+    {"q":"Customer satisfaction scores have _____ since the new policy was introduced.","opts":["raise","risen","risen up","raised"],"ans":1,"exp":"不及物動詞 rise 的完成式是 risen"},
+    {"q":"The proposal was _____ accepted by the board of directors.","opts":["unanimous","unanimously","unanimity","unanimousness"],"ans":1,"exp":"修飾 accepted（動詞）用副詞 unanimously"},
+    {"q":"All employees are _____ to attend the mandatory safety training.","opts":["require","required","requiring","requirement"],"ans":1,"exp":"are required to = 被要求，被動語態"},
+    {"q":"The new policy is designed to _____ workplace efficiency.","opts":["maximize","maximum","maximally","maximization"],"ans":0,"exp":"to + 原形動詞 maximize 最大化"},
+    {"q":"_____ careful planning, the event was a great success.","opts":["Thanks to","Although","However","Unless"],"ans":0,"exp":"Thanks to 後接名詞，表原因"},
+    {"q":"She has a proven _____ for meeting tight deadlines.","opts":["capable","capability","capably","capableness"],"ans":1,"exp":"a proven + 名詞 capability 能力"},
+    {"q":"The annual sales figures _____ at the board meeting last Friday.","opts":["present","were presented","presenting","has presented"],"ans":1,"exp":"被動語態：were + p.p. presented"},
+    {"q":"The new hire completed the training _____ than expected.","opts":["quick","quicker","more quickly","most quickly"],"ans":2,"exp":"修飾動詞 completed 用副詞比較級 more quickly"},
+    {"q":"All staff are asked to _____ their access badges at all times.","opts":["carry","carrying","carried","carries"],"ans":0,"exp":"are asked to + 原形動詞 carry"},
+    {"q":"The company's _____ policy ensures a safe work environment for everyone.","opts":["safe","safety","safely","safeness"],"ans":1,"exp":"名詞修飾名詞 policy → safety policy 安全政策"},
 ]
 
 LISTEN_P2 = [
