@@ -1,5 +1,5 @@
 """
-TOEIC Pro 750+ — Streamlit 版
+TOEIC Pro 850+ — Streamlit 版
 根據多益學習平台開發紀錄重建 + 每日打卡 + 小遊戲
 """
 import random
@@ -13,7 +13,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="TOEIC Pro 750+",
+    page_title="TOEIC Pro 850+",
     page_icon="🎯",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -382,12 +382,13 @@ def est_toeic():
     if S.total == 0:
         return "—"
     acc = S.correct / S.total
-    if acc >= 0.95: return "950+"
-    if acc >= 0.87: return "~880"
-    if acc >= 0.78: return "~790 ✨"
-    if acc >= 0.68: return "~700"
-    if acc >= 0.58: return "~620"
-    return "~520"
+    if acc >= 0.96: return "990 🏆"
+    if acc >= 0.92: return "~950"
+    if acc >= 0.87: return "~850 ✨"
+    if acc >= 0.80: return "~800"
+    if acc >= 0.72: return "~730"
+    if acc >= 0.62: return "~650"
+    return "~550"
 
 def add_mistake(type_, q, correct, chosen):
     S.mistakes.append({"type": type_, "q": q, "correct": correct, "chosen": chosen})
@@ -431,8 +432,8 @@ def render_timer(remaining, total):
 # 頁面：首頁儀表板
 # ─────────────────────────────────────────────────────────────────────────────
 def page_home():
-    st.markdown("""<div class="hero"><h1>🎯 TOEIC Pro 750+</h1>
-    <p>系統化備考，穩定達成多益 750 分目標</p></div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="hero"><h1>🎯 TOEIC Pro 850+</h1>
+    <p>系統化備考，穩定達成多益 850 分目標</p></div>""", unsafe_allow_html=True)
     acc = f"{S.correct/S.total*100:.0f}%" if S.total > 0 else "—"
     cd = load_checkin()
     st.markdown(f"""
@@ -450,8 +451,8 @@ def page_home():
         pct = S.correct / S.total
         st.markdown(f"""<div class="tcard"><b>整體進度</b>　{S.correct}/{S.total} 題正確
         <div class="pb-wrap"><div class="pb" style="width:{pct*100:.0f}%"></div></div>
-        <small style="color:#64748b">目標：78% 以上 → 預估 750+</small></div>""", unsafe_allow_html=True)
-    st.info("💡 **今日建議：** 先完成每日打卡 → 玩一局小遊戲 → 練習 30 張單字卡")
+        <small style="color:#64748b">目標：87% 以上 → 預估 850+</small></div>""", unsafe_allow_html=True)
+    st.info("💡 **今日建議：** 先完成每日打卡 → 玩一局小遊戲 → 練習 30 張單字卡\n\n🎯 **目標：整體正確率 87% 以上 → 預估多益 850 分**")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 頁面：每日打卡
@@ -1112,7 +1113,7 @@ def _show_mock_result():
     correct=sum(1 for k,v in done.items() if v==qs[int(k)]["ans"])
     acc=correct/len(qs)*100
     S.correct+=correct; S.total+=len(qs); S.mock_started=False
-    est="950+" if acc>=95 else "~880" if acc>=87 else "~790 ✨" if acc>=78 else "~700" if acc>=68 else "~620" if acc>=58 else "~520"
+    est="990 🏆" if acc>=96 else "~950" if acc>=92 else "~850 ✨" if acc>=87 else "~800" if acc>=80 else "~730" if acc>=72 else "~650" if acc>=62 else "~550"
     st.markdown(f"""<div style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;border-radius:16px;padding:2rem;text-align:center;margin-bottom:1rem">
     <div style="font-size:3rem;font-weight:900">{acc:.0f}%</div>
     <div style="font-size:1.3rem;margin:.5rem 0">預估多益分數：{est}</div>
