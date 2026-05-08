@@ -289,6 +289,31 @@ def load_notes() -> list:
 def save_notes(notes: list):
     NOTES_FILE.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 自訂單字庫
+# ─────────────────────────────────────────────────────────────────────────────
+CUSTOM_VOCAB_FILE = Path(__file__).parent / "custom_vocab.json"
+
+def load_custom_vocab() -> list:
+    if CUSTOM_VOCAB_FILE.exists():
+        try:
+            return json.loads(CUSTOM_VOCAB_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return []
+
+def save_custom_vocab(vocab: list):
+    CUSTOM_VOCAB_FILE.write_text(json.dumps(vocab, ensure_ascii=False, indent=2), encoding="utf-8")
+
+def get_combined_vocab() -> list:
+    custom = load_custom_vocab()
+    combined = list(VOCAB)
+    existing = {w["word"].lower() for w in VOCAB}
+    for c in custom:
+        if c["word"].lower() not in existing:
+            combined.append(c)
+    return combined
+
 def word_in_notes(word: str, notes: list) -> bool:
     return any(n.get("title", "").lower() == word.lower() for n in notes)
 
@@ -395,7 +420,7 @@ def add_mistake(type_, q, correct, chosen):
         S.mistakes.pop(0)
 
 def vocab_filtered():
-    result = VOCAB
+    result = get_combined_vocab()
     if S.v_cat != "全部":
         result = [w for w in result if w["cat"] == S.v_cat]
     if S.v_range != "全部":
@@ -885,7 +910,7 @@ def page_vocab():
     st.markdown("## 📚 單字卡練習")
     c1, c2 = st.columns(2)
     with c1:
-        cats = ["全部"] + sorted(set(w["cat"] for w in VOCAB))
+        cats = ["全部"] + sorted(set(w["cat"] for w in get_combined_vocab()))
         S.v_cat = st.selectbox("分類篩選", cats, index=cats.index(S.v_cat))
     with c2:
         ranges = ["全部", "600-780", "780-900", "900+"]
@@ -1191,17 +1216,18 @@ def page_wordlist():
     st.markdown("## 📋 單字庫")
     c1, c2, c3 = st.columns([3, 2, 2])
     with c1: query = st.text_input("🔍 搜尋單字或中文", value=S.wl_query, placeholder="allocate / 分配...")
-    with c2: cat = st.selectbox("分類", ["全部"] + sorted(set(w["cat"] for w in VOCAB)))
-    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+"], key="wordlist_range")
+    _all_vocab = get_combined_vocab()
+    with c2: cat = st.selectbox("分類", ["全部"] + sorted(set(w["cat"] for w in _all_vocab)))
+    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+", "自訂"], key="wordlist_range")
     S.wl_query = query; S.wl_cat = cat
-    filtered = VOCAB
+    filtered = _all_vocab
     if query:
         q = query.lower()
         filtered = [w for w in filtered if q in w["word"].lower() or q in w["zh"]]
     if cat != "全部": filtered = [w for w in filtered if w["cat"] == cat]
     if wl_range != "全部": filtered = [w for w in filtered if w["range"] == wl_range]
-    range_colors = {"780-900": "#dbeafe", "900+": "#f3e8ff", "600-780": "#f0fdf4"}
-    st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(VOCAB)} 筆</small>", unsafe_allow_html=True)
+    range_colors = {"780-900": "#dbeafe", "900+": "#f3e8ff", "600-780": "#f0fdf4", "自訂": "#fce7f3"}
+    st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(_all_vocab)} 筆</small>", unsafe_allow_html=True)
     st.markdown("---")
     _POS_CLS = {"n.": "tag-n", "v.": "tag-v", "adj.": "tag-adj", "adv.": "tag-adv"}
     rows_html = ""
@@ -1299,22 +1325,26 @@ def page_ai():
 # ─────────────────────────────────────────────────────────────────────────────
 def page_notebook():
     st.markdown("## 📒 筆記本")
+    nb_tab1, nb_tab2 = st.tabs(["📝 自由筆記", "📖 自訂單字"])
+
+    with nb_tab1:
+        _section_free_notes()
+
+    with nb_tab2:
+        _section_custom_vocab()
+
+
+def _section_free_notes():
     notes = load_notes()
 
     # ── 新增筆記區 ────────────────────────────────────────────────────────────
     with st.expander("✏️ 新增筆記", expanded=(not bool(notes))):
         new_title = st.text_input("標題", placeholder="單字、主題、任何名稱...", key="nb_new_title")
-        new_content = st.text_area(
-            "內容",
-            placeholder="自由輸入筆記內容...",
-            height=160,
-            key="nb_new_content",
-        )
+        new_content = st.text_area("內容", placeholder="自由輸入筆記內容...", height=160, key="nb_new_content")
         if st.button("💾 儲存新筆記", type="primary", key="nb_save_new"):
             if new_title.strip():
-                note_id = str(int(time.time()))
                 notes.append({
-                    "id": note_id,
+                    "id": str(int(time.time())),
                     "title": new_title.strip(),
                     "content": new_content.strip(),
                     "date_created": date.today().isoformat(),
@@ -1332,7 +1362,6 @@ def page_notebook():
         st.info("📒 筆記本是空的！點選上方「✏️ 新增筆記」開始記錄，或在「📚 單字卡」頁面點擊「📌 加入筆記」自動建立單字筆記。")
         return
 
-    # ── 搜尋 + 統計 ───────────────────────────────────────────────────────────
     col_s, col_c = st.columns([5, 1])
     with col_s:
         search = st.text_input("🔍 搜尋筆記", placeholder="搜尋標題或內容...", key="nb_search_box", label_visibility="collapsed")
@@ -1349,7 +1378,6 @@ def page_notebook():
     st.markdown(f"<small style='color:#64748b'>共 <b>{len(filtered)}</b> 筆（總計 {len(notes)} 筆）</small>", unsafe_allow_html=True)
     st.markdown("")
 
-    # ── 筆記列表 ──────────────────────────────────────────────────────────────
     for i, note in enumerate(filtered):
         real_idx = next((j for j, n in enumerate(notes) if n.get("id") == note.get("id")), None)
         if real_idx is None:
@@ -1365,10 +1393,10 @@ def page_notebook():
             )
         with col_btns:
             edit_label = "✕" if is_editing else "✏️"
-            if st.button(edit_label, key=f"nb_edit_{i}", use_container_width=True, help="編輯" if not is_editing else "取消"):
+            if st.button(edit_label, key=f"nb_edit_{i}", use_container_width=True):
                 S.nb_editing = None if is_editing else note.get("id")
                 st.rerun()
-            if st.button("🗑️", key=f"nb_del_{i}", use_container_width=True, help="刪除"):
+            if st.button("🗑️", key=f"nb_del_{i}", use_container_width=True):
                 notes.pop(real_idx)
                 if S.nb_editing == note.get("id"):
                     S.nb_editing = None
@@ -1386,14 +1414,93 @@ def page_notebook():
                 S.nb_editing = None
                 st.rerun()
         else:
-            content = note.get("content", "")
             st.markdown(
                 f'<div style="background:#f8fafc;border-radius:8px;padding:.75rem 1rem;margin:.4rem 0 .8rem;'
                 f'font-size:.88rem;color:#374151;white-space:pre-wrap;border-left:3px solid #e2e8f0">'
-                f'{content}</div>',
+                f'{note.get("content","")}</div>',
                 unsafe_allow_html=True,
             )
         st.markdown("---")
+
+
+def _section_custom_vocab():
+    custom = load_custom_vocab()
+    st.markdown(f"<small style='color:#64748b'>已自訂 <b>{len(custom)}</b> 個單字，同步顯示於「📚 單字卡」與「📋 單字庫」的「自訂」分類</small>", unsafe_allow_html=True)
+
+    # ── 新增單字表單 ──────────────────────────────────────────────────────────
+    with st.expander("➕ 新增單字", expanded=(not bool(custom))):
+        ca, cb = st.columns(2)
+        with ca:
+            cv_word = st.text_input("英文單字 *", placeholder="e.g. procrastinate", key="cv_word")
+            cv_zh   = st.text_input("中文意思 *", placeholder="e.g. 拖延", key="cv_zh")
+            cv_cat  = st.text_input("分類", value="自訂", key="cv_cat")
+        with cb:
+            cv_pos  = st.selectbox("詞性", ["n.", "v.", "adj.", "adv.", "prep.", "conj.", "phrase"], key="cv_pos")
+            cv_ex   = st.text_area("例句", placeholder="e.g. He tends to procrastinate on difficult tasks.", height=100, key="cv_ex")
+
+        if st.button("➕ 加入自訂單字庫", type="primary", key="cv_add"):
+            if cv_word.strip() and cv_zh.strip():
+                if any(c["word"].lower() == cv_word.strip().lower() for c in custom):
+                    st.warning(f"「{cv_word.strip()}」已在自訂單字庫中。")
+                else:
+                    custom.append({
+                        "word": cv_word.strip(),
+                        "pos": cv_pos,
+                        "zh": cv_zh.strip(),
+                        "ex": cv_ex.strip(),
+                        "cat": cv_cat.strip() or "自訂",
+                        "range": "自訂",
+                        "date_added": date.today().isoformat(),
+                    })
+                    save_custom_vocab(custom)
+                    st.success(f"✅ 已加入：{cv_word.strip()}")
+                    st.rerun()
+            else:
+                st.warning("請填寫英文單字和中文意思（必填）。")
+
+    st.markdown("---")
+
+    if not custom:
+        st.info("尚未新增任何自訂單字。填寫上方表單並點擊「加入」即可建立屬於自己的單字庫。")
+        return
+
+    # ── 搜尋 ──────────────────────────────────────────────────────────────────
+    cv_search = st.text_input("🔍 搜尋自訂單字", placeholder="英文或中文...", key="cv_search")
+    filtered = custom
+    if cv_search:
+        sq = cv_search.lower()
+        filtered = [c for c in custom if sq in c["word"].lower() or sq in c["zh"]]
+
+    st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(custom)} 筆</small>", unsafe_allow_html=True)
+    st.markdown("")
+
+    # ── 單字列表 ──────────────────────────────────────────────────────────────
+    for i, w in enumerate(filtered):
+        real_idx = next((j for j, c in enumerate(custom) if c["word"] == w["word"]), None)
+        if real_idx is None:
+            continue
+
+        col_info, col_act = st.columns([6, 1])
+        with col_info:
+            st.markdown(
+                f'<div class="tcard" style="border-left:4px solid #ec4899">'
+                f'<span style="font-size:1.15rem;font-weight:800;color:#2563eb">{w["word"]}</span> '
+                f'{tag_html(w["pos"])}'
+                f'<span class="nb-badge" style="background:#fce7f3;color:#9d174d">{w["cat"]}</span>'
+                f'<div style="font-weight:700;color:#1e293b;margin:.35rem 0 .15rem">{w["zh"]}</div>'
+                f'<div style="font-size:.82rem;color:#64748b;font-style:italic">"{w.get("ex","")}"</div>'
+                f'<div style="font-size:.68rem;color:#94a3b8;margin-top:.3rem">加入：{w.get("date_added","")}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with col_act:
+            if st.button("🔊", key=f"cv_sp_{i}", use_container_width=True):
+                speak_js(w["word"] + (". " + w["ex"] if w.get("ex") else ""))
+            if st.button("🗑️", key=f"cv_del_{i}", use_container_width=True):
+                custom.pop(real_idx)
+                save_custom_vocab(custom)
+                st.rerun()
+        st.markdown("")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 主程式
