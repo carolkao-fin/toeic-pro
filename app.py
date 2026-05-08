@@ -919,10 +919,14 @@ def page_vocab():
         ranges = ["全部", "600-780", "780-900", "900+"]
         S.v_range = st.selectbox("分數區間", ranges, index=ranges.index(S.v_range), key="vocab_range")
     words = vocab_filtered()
+    if not words:
+        st.info("此分類目前沒有單字。請前往「📒 筆記本 → 自訂單字」新增，或更換分類篩選。")
+        return
     if S.v_idx >= len(words): S.v_idx = 0
     total_w = len(words)
     done_w = len([w for w in words if w["word"] in S.learned])
-    st.markdown(f'<div class="pb-wrap"><div class="pb" style="width:{done_w/total_w*100:.0f}%"></div></div><small>已學 {done_w}/{total_w}　第 {S.v_idx+1}/{total_w} 張</small>', unsafe_allow_html=True)
+    pct_w = done_w / total_w * 100
+    st.markdown(f'<div class="pb-wrap"><div class="pb" style="width:{pct_w:.0f}%"></div></div><small>已學 {done_w}/{total_w}　第 {S.v_idx+1}/{total_w} 張</small>', unsafe_allow_html=True)
     w = words[S.v_idx]
     if not S.v_flipped:
         st.markdown(f'<div class="flashcard"><div class="fc-word">{w["word"]}</div><div class="fc-pos">{w["pos"]} ‧ {w["cat"]}</div><div style="margin-top:1rem;font-size:.85rem;opacity:.7">點擊「翻牌」查看意思</div></div>', unsafe_allow_html=True)
