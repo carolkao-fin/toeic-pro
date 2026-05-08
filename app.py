@@ -120,8 +120,8 @@ def _load_vocab() -> list:
         ex = r.get("ex", "").strip()
         if not word or not zh or not ex:
             continue
-        # 過濾短語（"a ...", "the ..." 開頭）與過長單字
-        if word[:2].lower() in ("a ", "an", "th") or len(word) > 25:
+        # 過濾含空格的多字片語與過長單字
+        if " " in word or len(word) > 25:
             continue
         if word.lower() in seen:
             continue
@@ -306,7 +306,7 @@ def check_badges(cd):
 def init_state():
     defaults = {
         "learned": set(), "correct": 0, "total": 0, "sessions": 0, "mistakes": [],
-        "v_idx": 0, "v_flipped": False, "v_cat": "全部",
+        "v_idx": 0, "v_flipped": False, "v_cat": "全部", "v_range": "全部",
         "g_qs": [], "g_idx": 0, "g_done": {}, "g_started": False,
         "lp2_idx": 0, "lp3_idx": 0, "lp3_q": 0, "lp4_idx": 0, "lp4_q": 0,
         "r_idx": 0, "r_done": {},
@@ -319,7 +319,7 @@ def init_state():
         "game_end_time": 0.0,
         "game_correct": 0, "game_wrong": 0, "game_xp": 0,
         "match_cards": [], "match_selected": None, "match_matched": set(),
-        "gq_qs": [], "gq_idx": 0, "gq_answered": False, "gq_was_correct": False,
+        "gq_qs": [], "gq_idx": 0, "gq_answered": False, "gq_was_correct": False, "gq_chosen": -1,
         "sp_words": [], "sp_idx": 0, "sp_key": 0,
         "game_result": None,      # dict when game ends
     }
@@ -351,8 +351,12 @@ def add_mistake(type_, q, correct, chosen):
         S.mistakes.pop(0)
 
 def vocab_filtered():
-    cat = S.v_cat
-    return VOCAB if cat == "全部" else [w for w in VOCAB if w["cat"] == cat]
+    result = VOCAB
+    if S.v_cat != "全部":
+        result = [w for w in result if w["cat"] == S.v_cat]
+    if S.v_range != "全部":
+        result = [w for w in result if w["range"] == S.v_range]
+    return result
 
 def tag_html(pos):
     cls = {"n.": "tag-n", "v.": "tag-v", "adj.": "tag-adj", "adv.": "tag-adv"}.get(pos, "tag-n")
@@ -603,7 +607,7 @@ def _init_match_game():
 def _init_quiz_game():
     S.game_active = "quiz"
     S.gq_qs = random.sample(GRAMMAR_QS, 10)
-    S.gq_idx = 0; S.gq_answered = False; S.gq_was_correct = False
+    S.gq_idx = 0; S.gq_answered = False; S.gq_was_correct = False; S.gq_chosen = -1
     S.game_correct = 0; S.game_wrong = 0; S.game_xp = 0
     S.game_end_time = time.time() + 120
     S.game_result = None
@@ -611,7 +615,7 @@ def _init_quiz_game():
 
 def _init_speed_game():
     S.game_active = "speed"
-    S.sp_words = random.sample(VOCAB, 12)
+    S.sp_words = [{"en": w["word"], "zh": w["zh"]} for w in random.sample(VOCAB, 12)]
     S.sp_idx = 0; S.sp_key = 0
     S.game_correct = 0; S.game_wrong = 0; S.game_xp = 0
     S.game_end_time = time.time() + 60
@@ -722,6 +726,7 @@ def _run_quiz_game():
                 ok = (i == q["ans"])
                 S.gq_answered = True
                 S.gq_was_correct = ok
+                S.gq_chosen = i
                 if ok:
                     S.game_correct += 1; S.game_xp += 10
                 else:
@@ -733,8 +738,10 @@ def _run_quiz_game():
             label = f"{chr(65+i)}. {opt}"
             if i == q["ans"]:
                 st.markdown(f'<div style="background:#ecfdf5;border:2px solid #10b981;border-radius:10px;padding:.6rem 1rem;margin:.25rem 0">✅ {label}</div>', unsafe_allow_html=True)
-            elif not S.gq_was_correct and i != q["ans"]:
-                pass
+            elif i == S.gq_chosen and not S.gq_was_correct:
+                st.markdown(f'<div style="background:#fef2f2;border:2px solid #ef4444;border-radius:10px;padding:.6rem 1rem;margin:.25rem 0">❌ {label}</div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:.6rem 1rem;margin:.25rem 0;color:#94a3b8">{label}</div>', unsafe_allow_html=True)
         if S.gq_was_correct:
             st.markdown('<div class="fb-ok">✅ 答對！' + q["exp"] + '</div>', unsafe_allow_html=True)
         else:
@@ -832,8 +839,13 @@ def _show_game_result():
 # ─────────────────────────────────────────────────────────────────────────────
 def page_vocab():
     st.markdown("## 📚 單字卡練習")
-    cats = ["全部"] + sorted(set(w["cat"] for w in VOCAB))
-    S.v_cat = st.selectbox("分類篩選", cats, index=cats.index(S.v_cat))
+    c1, c2 = st.columns(2)
+    with c1:
+        cats = ["全部"] + sorted(set(w["cat"] for w in VOCAB))
+        S.v_cat = st.selectbox("分類篩選", cats, index=cats.index(S.v_cat))
+    with c2:
+        ranges = ["全部", "600-780", "780-900", "900+"]
+        S.v_range = st.selectbox("分數區間", ranges, index=ranges.index(S.v_range))
     words = vocab_filtered()
     if S.v_idx >= len(words): S.v_idx = 0
     total_w = len(words)
@@ -1123,25 +1135,34 @@ def page_review():
 # ─────────────────────────────────────────────────────────────────────────────
 def page_wordlist():
     st.markdown("## 📋 單字庫")
-    c1,c2=st.columns([2,1])
-    with c1: query=st.text_input("🔍 搜尋單字或中文",value=S.wl_query,placeholder="allocate / 分配...")
-    with c2: cat=st.selectbox("分類",["全部"]+sorted(set(w["cat"] for w in VOCAB)))
-    S.wl_query=query; S.wl_cat=cat
-    filtered=VOCAB
-    if query: q=query.lower(); filtered=[w for w in filtered if q in w["word"].lower() or q in w["zh"]]
-    if cat!="全部": filtered=[w for w in filtered if w["cat"]==cat]
+    c1, c2, c3 = st.columns([3, 2, 2])
+    with c1: query = st.text_input("🔍 搜尋單字或中文", value=S.wl_query, placeholder="allocate / 分配...")
+    with c2: cat = st.selectbox("分類", ["全部"] + sorted(set(w["cat"] for w in VOCAB)))
+    with c3: wl_range = st.selectbox("分數區間", ["全部", "600-780", "780-900", "900+"])
+    S.wl_query = query; S.wl_cat = cat
+    filtered = VOCAB
+    if query:
+        q = query.lower()
+        filtered = [w for w in filtered if q in w["word"].lower() or q in w["zh"]]
+    if cat != "全部": filtered = [w for w in filtered if w["cat"] == cat]
+    if wl_range != "全部": filtered = [w for w in filtered if w["range"] == wl_range]
+    range_colors = {"780-900": "#dbeafe", "900+": "#f3e8ff", "600-780": "#f0fdf4"}
     st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(VOCAB)} 筆</small>", unsafe_allow_html=True)
     st.markdown("---")
     for w in filtered:
-        mark="✅ " if w["word"] in S.learned else ""
-        st.markdown(f'<div class="wl-row"><div class="wl-word">{mark}{w["word"]}</div>{tag_html(w["pos"])}<div class="wl-zh">{w["zh"]}</div><div class="wl-ex">{w["ex"]}</div></div>', unsafe_allow_html=True)
+        mark = "✅ " if w["word"] in S.learned else ""
+        rng = w.get("range", "")
+        rng_bg = range_colors.get(rng, "#f8fafc")
+        rng_tag = f'<span style="background:{rng_bg};border-radius:4px;padding:.1rem .4rem;font-size:.68rem;font-weight:700;white-space:nowrap">{rng}</span>'
+        st.markdown(f'<div class="wl-row"><div class="wl-word">{mark}{w["word"]}</div>{tag_html(w["pos"])}{rng_tag}<div class="wl-zh">{w["zh"]}</div><div class="wl-ex">{w["ex"]}</div></div>', unsafe_allow_html=True)
+    st.markdown("<br><small style='color:#94a3b8'>詞彙資料來源：<a href='https://huggingface.co/datasets/kknono668/toeic-vocab-tw' target='_blank'>kknono668/toeic-vocab-tw</a>（CC-BY-SA-4.0）</small>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 頁面：AI 出題
 # ─────────────────────────────────────────────────────────────────────────────
 def page_ai():
     st.markdown("## 🤖 AI 自動出題")
-    st.info("從 120 個單字庫中隨機抽取，自動生成填空選擇題。")
+    st.info(f"從 {len(VOCAB):,} 個單字庫中隨機抽取，自動生成填空選擇題。")
     if st.button("🎲 生成 5 題",type="primary"):
         sample=random.sample(VOCAB,5)
         TEMPLATES=[
