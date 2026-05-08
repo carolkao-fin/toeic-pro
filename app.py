@@ -1237,11 +1237,12 @@ def page_wordlist():
     if cat != "全部": filtered = [w for w in filtered if w["cat"] == cat]
     if wl_range != "全部": filtered = [w for w in filtered if w["range"] == wl_range]
     range_colors = {"780-900": "#dbeafe", "900+": "#f3e8ff", "600-780": "#f0fdf4", "自訂": "#fce7f3"}
-    st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(_all_vocab)} 筆</small>", unsafe_allow_html=True)
-    st.markdown("---")
     if not filtered:
+        st.markdown("---")
         st.info("此分類目前沒有單字。請前往「📒 筆記本 → 自訂單字」新增，或更換分類篩選。")
         return
+    st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(_all_vocab)} 筆</small>", unsafe_allow_html=True)
+    st.markdown("---")
     _POS_CLS = {"n.": "tag-n", "v.": "tag-v", "adj.": "tag-adj", "adv.": "tag-adv"}
     rows_html = ""
     for w in filtered:
