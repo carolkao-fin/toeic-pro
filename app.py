@@ -1149,12 +1149,55 @@ def page_wordlist():
     range_colors = {"780-900": "#dbeafe", "900+": "#f3e8ff", "600-780": "#f0fdf4"}
     st.markdown(f"<small style='color:#64748b'>顯示 {len(filtered)}/{len(VOCAB)} 筆</small>", unsafe_allow_html=True)
     st.markdown("---")
+    _POS_CLS = {"n.": "tag-n", "v.": "tag-v", "adj.": "tag-adj", "adv.": "tag-adv"}
+    rows_html = ""
     for w in filtered:
         mark = "✅ " if w["word"] in S.learned else ""
         rng = w.get("range", "")
         rng_bg = range_colors.get(rng, "#f8fafc")
-        rng_tag = f'<span style="background:{rng_bg};border-radius:4px;padding:.1rem .4rem;font-size:.68rem;font-weight:700;white-space:nowrap">{rng}</span>'
-        st.markdown(f'<div class="wl-row"><div class="wl-word">{mark}{w["word"]}</div>{tag_html(w["pos"])}{rng_tag}<div class="wl-zh">{w["zh"]}</div><div class="wl-ex">{w["ex"]}</div></div>', unsafe_allow_html=True)
+        pos_cls = _POS_CLS.get(w["pos"], "tag-n")
+        word_js = w["word"].replace("\\", "\\\\").replace("'", "\\'")
+        ex_js = w["ex"].replace("\\", "\\\\").replace("'", "\\'")
+        rows_html += (
+            f'<div class="wl-row">'
+            f'<div class="wl-word">{mark}{w["word"]}</div>'
+            f'<span class="tag {pos_cls}">{w["pos"]}</span>'
+            f'<span style="background:{rng_bg};border-radius:4px;padding:.1rem .4rem;font-size:.68rem;font-weight:700;white-space:nowrap">{rng}</span>'
+            f'<div class="wl-zh">{w["zh"]}</div>'
+            f'<div class="wl-ex">{w["ex"]}</div>'
+            f'<button class="speak-btn" onclick="speakWord(\'{word_js}. {ex_js}\')" title="播放發音">🔊</button>'
+            f'</div>'
+        )
+    h = min(600, max(200, len(filtered) * 48))
+    components.html(f"""
+<style>
+*{{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}}
+body{{margin:0;padding:0;background:#fff}}
+.wl-row{{display:flex;align-items:center;gap:.8rem;padding:.6rem .8rem;border-bottom:1px solid #f1f5f9}}
+.wl-word{{font-weight:700;min-width:130px;font-size:.95rem;color:#1e293b;flex-shrink:0}}
+.wl-zh{{color:#64748b;flex:1;font-size:.88rem}}
+.wl-ex{{font-size:.78rem;color:#94a3b8;flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.tag{{display:inline-block;padding:.15rem .55rem;border-radius:6px;font-size:.72rem;font-weight:700;margin-right:.3rem;white-space:nowrap;flex-shrink:0}}
+.tag-n{{background:#dbeafe;color:#1e40af}}
+.tag-v{{background:#dcfce7;color:#166534}}
+.tag-adj{{background:#fef9c3;color:#854d0e}}
+.tag-adv{{background:#f3e8ff;color:#6b21a8}}
+.speak-btn{{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:.2rem .45rem;cursor:pointer;font-size:.95rem;color:#2563eb;flex-shrink:0;margin-left:auto;transition:all .15s}}
+.speak-btn:hover{{background:#eff6ff;border-color:#2563eb}}
+.speak-btn:active{{transform:scale(.9)}}
+</style>
+<div style="height:{h}px;overflow-y:auto">{rows_html}</div>
+<script>
+function speakWord(t){{
+  window.speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(t);
+  u.lang='en-US';u.rate=0.88;u.pitch=1;
+  var vs=window.speechSynthesis.getVoices();
+  var en=vs.find(function(v){{return v.lang.startsWith('en')}});
+  if(en)u.voice=en;
+  window.speechSynthesis.speak(u);
+}}
+</script>""", height=h+4, scrolling=False)
     st.markdown("<br><small style='color:#94a3b8'>詞彙資料來源：<a href='https://huggingface.co/datasets/kknono668/toeic-vocab-tw' target='_blank'>kknono668/toeic-vocab-tw</a>（CC-BY-SA-4.0）</small>", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
